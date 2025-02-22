@@ -1,7 +1,9 @@
-from fastapi import FastAPI, Security, HTTPException
+import logging
+from fastapi import FastAPI, Security, HTTPException, Header, Depends
 from fastapi.security.api_key import APIKeyHeader
-from starlette.status import HTTP_403_FORBIDDEN
-from models import Product, UserPreferences, Recipe
+from starlette.status import HTTP_403_FORBIDDEN, HTTP_500_INTERNAL_SERVER_ERROR
+from models import Product, UserPreferences, Recipe, GenerateRecipeRequest
+from openai import OpenAI, OpenAIError
 
 API_KEY = "default_api_key_12345"
 API_KEY_NAME = "X-API-Key"
@@ -35,6 +37,54 @@ async def get_sponsored_products():
 async def get_user_preferences():
     # Return sample user preferences
     return UserPreferences()
+
+async def get_openai_client(authorization: str = Header(...)) -> OpenAI:
+    return OpenAI(api_key=authorization)
+
+@app.post("/recipes/generate", dependencies=[Security(get_api_key)])
+async def generate_recipe(
+    request: GenerateRecipeRequest,
+    client: OpenAI = Depends(get_openai_client)
+):
+    try:
+        # Create the prompt for recipe generation
+        prompt = f"Generate a recipe for: {request.prompt}\n"
+        prompt += "Include title, ingredients, preparation time, difficulty, and instructions."
+        
+        completion = await client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a professional chef creating detailed recipes."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        # Extract the recipe text from the response
+        recipe_text = completion.choices[0].message.content
+        
+        # For now, return a basic Recipe with some fields from GPT
+        # In a real implementation, you'd want to parse the GPT response more carefully
+        return Recipe(
+            title=request.prompt.title(),
+            ingredients=["Generated ingredients will go here"],
+            preparation_time=30,
+            difficulty="medium",
+            nutritional_info="Generated nutritional info",
+            instructions=recipe_text.split("\n")
+        )
+        
+    except OpenAIError as e:
+        logging.error(f"OpenAI API error: {str(e)}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate recipe"
+        )
+    except Exception as e:
+        logging.error(f"Unexpected error: {str(e)}")
+        raise HTTPException(
+            status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
 
 if __name__ == "__main__":
     import uvicorn

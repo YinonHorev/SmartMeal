@@ -1,5 +1,5 @@
-from typing import List
-from pydantic import BaseModel
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
 class Product(BaseModel):
     id: int = 1
@@ -20,6 +20,9 @@ class Recipe(BaseModel):
         "Fresh mozzarella",
         "Fresh basil"
     ]
+
+class GenerateRecipeRequest(BaseModel):
+    prompt: str = Field(..., description="Description of the recipe to generate")
     preparation_time: int = 45  # minutes
     difficulty: str = "medium"
     nutritional_info: str = "Calories: 250, Protein: 10g, Carbs: 30g"
