@@ -7,7 +7,12 @@ authors = [
     { name = "Yinon Horev", email = "yinon.horev@pon.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "fastapi>=0.115.8",
+    "openai>=1.63.2",
+    "pydantic>=2.10.6",
+    "uvicorn>=0.34.0",
+]
 
 [project.scripts]
 smart-meal = "smart_meal:main"
