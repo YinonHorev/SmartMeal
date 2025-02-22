@@ -4,6 +4,9 @@ from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_500_INTERNAL_SERVER_ERROR
 from models import Product, UserPreferences, Recipe, GenerateRecipeRequest
 from openai import OpenAI, OpenAIError
+from db import RecipeDB
+
+recipe_db = RecipeDB()
 
 API_KEY = "default_api_key_12345"
 API_KEY_NAME = "X-API-Key"
@@ -25,8 +28,7 @@ async def root():
 
 @app.get("/recipes/recommended", dependencies=[Security(get_api_key)])
 async def get_recommended_recipes():
-    # Return a sample recipe using the default values
-    return [Recipe()]
+    return recipe_db.get_recipes()
 
 @app.get("/products/sponsored", dependencies=[Security(get_api_key)])
 async def get_sponsored_products():
@@ -64,14 +66,17 @@ async def generate_recipe(
 
         # For now, return a basic Recipe with some fields from GPT
         # In a real implementation, you'd want to parse the GPT response more carefully
-        return Recipe(
+        recipe = Recipe(
+            prompt=request.prompt,
             title=request.prompt.title(),
             ingredients=["Generated ingredients will go here"],
             preparation_time=30,
             difficulty="medium",
             nutritional_info="Generated nutritional info",
-            instructions=recipe_text.split("\n")
+            instructions=recipe_text.content.split("\n")
         )
+        recipe_db.add_recipe(recipe)
+        return recipe
 
     except OpenAIError as e:
         logging.error(f"OpenAI API error: {str(e)}")
