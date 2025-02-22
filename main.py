@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Security, HTTPException
 from fastapi.security.api_key import APIKeyHeader
 from starlette.status import HTTP_403_FORBIDDEN
+from models import Product, UserPreferences, Recipe
 
 API_KEY = "default_api_key_12345"
 API_KEY_NAME = "X-API-Key"
