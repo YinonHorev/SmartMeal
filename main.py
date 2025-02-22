@@ -38,8 +38,8 @@ async def get_user_preferences():
     # Return sample user preferences
     return UserPreferences()
 
-async def get_openai_client(authorization: str = Header(...)) -> OpenAI:
-    return OpenAI(api_key=authorization)
+async def get_openai_client(open_ai_token: str = Header(...)) -> OpenAI:
+    return OpenAI(api_key=open_ai_token)
 
 @app.post("/recipes/generate", dependencies=[Security(get_api_key)])
 async def generate_recipe(
@@ -50,18 +50,18 @@ async def generate_recipe(
         # Create the prompt for recipe generation
         prompt = f"Generate a recipe for: {request.prompt}\n"
         prompt += "Include title, ingredients, preparation time, difficulty, and instructions."
-        
-        completion = await client.chat.completions.create(
+
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
+            store=False,
             messages=[
                 {"role": "system", "content": "You are a professional chef creating detailed recipes."},
                 {"role": "user", "content": prompt}
             ]
         )
-        
         # Extract the recipe text from the response
-        recipe_text = completion.choices[0].message.content
-        
+        recipe_text = completion.choices[0].message
+
         # For now, return a basic Recipe with some fields from GPT
         # In a real implementation, you'd want to parse the GPT response more carefully
         return Recipe(
@@ -72,7 +72,7 @@ async def generate_recipe(
             nutritional_info="Generated nutritional info",
             instructions=recipe_text.split("\n")
         )
-        
+
     except OpenAIError as e:
         logging.error(f"OpenAI API error: {str(e)}")
         raise HTTPException(
