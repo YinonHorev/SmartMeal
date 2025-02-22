@@ -21,6 +21,21 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
 async def root():
     return {"message": "Hello, World!"}
 
+@app.get("/recipes/recommended", dependencies=[Security(get_api_key)])
+async def get_recommended_recipes():
+    # Return a sample recipe using the default values
+    return [Recipe()]
+
+@app.get("/products/sponsored", dependencies=[Security(get_api_key)])
+async def get_sponsored_products():
+    # Return sample products
+    return [Product(), Product(id=2, name="Fresh Pasta", promotional=True)]
+
+@app.get("/user/preferences", dependencies=[Security(get_api_key)])
+async def get_user_preferences():
+    # Return sample user preferences
+    return UserPreferences()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
